@@ -1,25 +1,36 @@
 import * as express from 'express'
-import * as faye from 'faye'
-import {setInterval} from "timers"
-
-interface Location {
-  systemName: string
-  x: number
-  y: number
-  z: number
-}
-
-interface BeaconMessage {
-  cmdr: string
-  location: Location
-}
+import * as WebSocket from 'ws'
+import {Beacon, BeaconMessage} from "./beacon"
 
 const app = express()
-const bayeux = new faye.NodeAdapter({ mount: '/faye', timeout: 45 })
 const server = app.listen(3000)
-bayeux.attach(server)
+const wss = new WebSocket.Server({ server })
+const beacon = new Beacon()
 
-const beacon = new Map<string, BeaconMessage>()
+interface DataMessage {
+  type: 'beacon'
+  msg: BeaconMessage
+}
 
-const client = new faye.Client('http://localhost:3000/faye')
-client.subscribe('/beacon', (message: BeaconMessage) => beacon.set(message.cmdr, message))
+wss.on('connection', ws => {
+
+  let latest: string
+
+  ws.on('open', () => ws.send(beacon.getAll()))
+
+  ws.on('message', (data: DataMessage) => {
+    if (data.type === 'beacon') {
+      beacon.set(data.msg)
+      latest = data.msg.cmdr
+      wss.clients.forEach(cl => {
+        if (cl !== ws && cl.readyState === WebSocket.OPEN) {
+          cl.send(data.msg)
+        }
+      })
+    }
+  })
+
+  ws.on('close', () => { if (latest) beacon.remove(latest) })
+
+})
+console.log('Server started')
