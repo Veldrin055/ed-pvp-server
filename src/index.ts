@@ -24,21 +24,32 @@ wss.on('connection', ws => {
 
   let latest: string
 
-  ws.on('open', () => ws.send(beacon.getAll()))
+  ws.on('open', () => ws.send({ type: 'beacon', msg: beacon.getAll()} ))
 
-  ws.on('message', (data: DataMessage) => {
+  ws.on('message', (dataStr: string) => {
+    const data: DataMessage = JSON.parse(dataStr)
     if (data.type === 'beacon') {
-      beacon.set(data.msg)
-      latest = data.msg.cmdr
+      const { type, msg } = data
+      beacon.set(msg)
+      latest = msg.cmdr
       wss.clients.forEach(cl => {
         if (cl !== ws && cl.readyState === WebSocket.OPEN) {
-          cl.send(data.msg)
+          cl.send({ type, msg })
         }
       })
     }
   })
 
-  ws.on('close', () => { if (latest) beacon.remove(latest) })
+  ws.on('close', () => {
+    if (latest) {
+      beacon.remove(latest)
+      wss.clients.forEach(cl => {
+        if (cl !== ws && cl.readyState === WebSocket.OPEN) {
+          cl.send({ type: 'beacon_remove', msg: latest })
+        }
+      })
+    }
+})
 
 })
 console.log(`Server started on port ${port}`)
