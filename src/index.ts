@@ -9,9 +9,9 @@ nconf
   port: 3000
 })
 
-const port = nconf.get('port')
+const port = process.env.PORT ? process.env.PORT : nconf.get('port')
 const app = express()
-const server = app.listen(port)
+const server = app.listen(process.env.PORT || port)
 const wss = new WebSocket.Server({ server })
 const beacon = new Beacon()
 
