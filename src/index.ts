@@ -32,6 +32,7 @@ wss.on('connection', ws => {
       const { type, msg } = data
       beacon.set(msg)
       latest = msg.cmdr
+      console.log(`update ${latest}`, data)
       wss.clients.forEach(cl => {
         if (cl !== ws && cl.readyState === WebSocket.OPEN) {
           cl.send({ type, msg })
@@ -42,6 +43,7 @@ wss.on('connection', ws => {
 
   ws.on('close', () => {
     if (latest) {
+      console.log(`disconnecting ${latest}`)
       beacon.remove(latest)
       wss.clients.forEach(cl => {
         if (cl !== ws && cl.readyState === WebSocket.OPEN) {
