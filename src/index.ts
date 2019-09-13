@@ -1,9 +1,17 @@
 import * as express from 'express'
 import * as WebSocket from 'ws'
 import {Beacon, BeaconMessage} from "./beacon"
+import * as nconf from 'nconf'
 
+nconf
+  .argv()
+  .defaults({
+  port: 3000
+})
+
+const port = nconf.get('port')
 const app = express()
-const server = app.listen(3000)
+const server = app.listen(port)
 const wss = new WebSocket.Server({ server })
 const beacon = new Beacon()
 
@@ -33,4 +41,4 @@ wss.on('connection', ws => {
   ws.on('close', () => { if (latest) beacon.remove(latest) })
 
 })
-console.log('Server started')
+console.log(`Server started on port ${port}`)
