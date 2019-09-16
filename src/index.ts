@@ -20,10 +20,13 @@ interface DataMessage {
   msg: BeaconMessage
 }
 
-wss.on('connection', ws => {
+type KeepAliveSocket = WebSocket & { isAlive: boolean }
+
+wss.on('connection', (ws: KeepAliveSocket) => {
 
   let latest: string
-
+  ws.isAlive = true
+  ws.on('pong', () => ws.isAlive = true);
   ws.on('open', () => ws.send({ type: 'beacon', msg: beacon.getAll()} ))
 
   ws.on('message', (dataStr: string) => {
@@ -54,4 +57,15 @@ wss.on('connection', ws => {
 })
 
 })
+
+const interval = setInterval(() => {
+  wss.clients.forEach(ws => {
+    const socket = ws as KeepAliveSocket
+    if (socket.isAlive === false) return ws.terminate();
+
+    socket.isAlive = false;
+    ws.ping(() => {});
+  });
+}, 30000);
+
 console.log(`Server started on port ${port}`)
