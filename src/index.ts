@@ -38,7 +38,7 @@ wss.on('connection', (ws: KeepAliveSocket) => {
       console.log(`update ${latest}`, data)
       wss.clients.forEach(cl => {
         if (cl !== ws && cl.readyState === WebSocket.OPEN) {
-          cl.send({ type, msg })
+          cl.send(JSON.stringify({ type, msg }))
         }
       })
     }
@@ -50,7 +50,7 @@ wss.on('connection', (ws: KeepAliveSocket) => {
       beacon.remove(latest)
       wss.clients.forEach(cl => {
         if (cl !== ws && cl.readyState === WebSocket.OPEN) {
-          cl.send({ type: 'beacon_remove', msg: latest })
+          cl.send(JSON.stringify({ type: 'beacon_remove', msg: latest }))
         }
       })
     }
