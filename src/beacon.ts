@@ -1,5 +1,10 @@
-interface Location {
+export interface Location {
   systemName: string
+  body: string
+  position: Coordinates
+}
+
+export interface Coordinates {
   x: number
   y: number
   z: number

@@ -40,16 +40,14 @@ wss.on('connection', (ws: KeepAliveSocket) => {
       const { type, msg } = data as BeaconDataMessage
       
       if (!cmdr) { // Send the contents of the beacon on first submission received
-        for (let message of beacon.getAll()) {
-          ws.send({ type: 'beacon', msg: message })  
-        }
+        ws.send(JSON.stringify({ type: 'beacon', msg: beacon.getAll }))  
       }
 
       cmdr = msg.cmdr
       beacon.set(msg)
       console.log(`update ${cmdr}`, data)
 
-      broadcast({ type, msg })
+      broadcast({ type, msg: [msg] })
     }
   })
 
