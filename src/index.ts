@@ -16,6 +16,11 @@ const wss = new WebSocket.Server({ server })
 const beacon = new Beacon()
 
 interface DataMessage {
+  type: string
+  msg: any 
+}
+
+interface BeaconDataMessage extends DataMessage{
   type: 'beacon'
   msg: BeaconMessage
 }
@@ -24,39 +29,47 @@ type KeepAliveSocket = WebSocket & { isAlive: boolean }
 
 wss.on('connection', (ws: KeepAliveSocket) => {
 
-  let latest: string
+  let cmdr: string
   ws.isAlive = true
   ws.on('pong', () => ws.isAlive = true);
-  ws.on('open', () => ws.send({ type: 'beacon', msg: beacon.getAll()} ))
 
   ws.on('message', (dataStr: string) => {
     const data: DataMessage = JSON.parse(dataStr)
+
     if (data.type === 'beacon') {
-      const { type, msg } = data
-      beacon.set(msg)
-      latest = msg.cmdr
-      console.log(`update ${latest}`, data)
-      wss.clients.forEach(cl => {
-        if (cl !== ws && cl.readyState === WebSocket.OPEN) {
-          cl.send(JSON.stringify({ type, msg }))
+      const { type, msg } = data as BeaconDataMessage
+      
+      if (!cmdr) { // Send the contents of the beacon on first submission received
+        for (let message of beacon.getAll()) {
+          ws.send({ type: 'beacon', msg: message })  
         }
-      })
+      }
+
+      cmdr = msg.cmdr
+      beacon.set(msg)
+      console.log(`update ${cmdr}`, data)
+
+      broadcast({ type, msg })
     }
   })
 
   ws.on('close', () => {
-    if (latest) {
-      console.log(`disconnecting ${latest}`)
-      beacon.remove(latest)
-      wss.clients.forEach(cl => {
-        if (cl !== ws && cl.readyState === WebSocket.OPEN) {
-          cl.send(JSON.stringify({ type: 'beacon_remove', msg: latest }))
-        }
-      })
+    if (cmdr) {
+      console.log(`disconnecting ${cmdr}`)
+      beacon.remove(cmdr)
+      broadcast({ type: 'beacon_remove', msg: cmdr })
     }
-})
+  })
+
+  const broadcast = (data: DataMessage) => wss.clients.forEach(cl => {
+    if (cl !== ws && cl.readyState === WebSocket.OPEN) {
+      cl.send(JSON.stringify(data))
+    }
+  })
 
 })
+
+
 
 const interval = setInterval(() => {
   wss.clients.forEach(ws => {
