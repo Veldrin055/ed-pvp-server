@@ -40,7 +40,7 @@ wss.on('connection', (ws: KeepAliveSocket) => {
       const { type, msg } = data as BeaconDataMessage
       
       if (!cmdr) { // Send the contents of the beacon on first submission received
-        ws.send(JSON.stringify({ type: 'beacon', msg: beacon.getAll }))  
+        ws.send(JSON.stringify({ type: 'beacon', msg: beacon.getAll() }))  
       }
 
       cmdr = msg.cmdr
@@ -59,6 +59,7 @@ wss.on('connection', (ws: KeepAliveSocket) => {
     }
   })
 
+  // Send to all clients except this one
   const broadcast = (data: DataMessage) => wss.clients.forEach(cl => {
     if (cl !== ws && cl.readyState === WebSocket.OPEN) {
       cl.send(JSON.stringify(data))
@@ -66,8 +67,6 @@ wss.on('connection', (ws: KeepAliveSocket) => {
   })
 
 })
-
-
 
 const interval = setInterval(() => {
   wss.clients.forEach(ws => {

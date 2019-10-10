@@ -20,7 +20,7 @@ export class Beacon {
 
   getAll(): BeaconMessage[] {
     const values: BeaconMessage[] = []
-    this.beacon.forEach((value) => values.push(value))
+    this.beacon.forEach((value) => values.push({ ...value }))
     return values
   }
 
