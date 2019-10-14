@@ -59,6 +59,7 @@ wss.on('connection', (ws: KeepAliveSocket) => {
     if (cmdr) {
       console.log(`disconnecting ${cmdr}`)
       beacon.remove(cmdr)
+      cmdr = ''
       broadcast({type: 'beacon_remove', msg: cmdr})
     }
   }
