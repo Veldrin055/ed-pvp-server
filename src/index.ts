@@ -36,9 +36,9 @@ wss.on('connection', (ws: KeepAliveSocket) => {
   ws.on('message', (dataStr: string) => {
     const data: DataMessage = JSON.parse(dataStr)
 
-    if (data.type === 'beacon') {
-      const { type, msg } = data as BeaconDataMessage
-      
+    const { type, msg } = data as BeaconDataMessage
+    if (type === 'beacon') {
+
       if (!cmdr) { // Send the contents of the beacon on first submission received
         ws.send(JSON.stringify({ type: 'beacon', msg: beacon.getAll() }))  
       }
@@ -48,16 +48,20 @@ wss.on('connection', (ws: KeepAliveSocket) => {
       console.log(`update ${cmdr}`, data)
 
       broadcast({ type, msg: [msg] })
+    } else if (type === 'beacon_remove') {
+      remove()
     }
   })
 
-  ws.on('close', () => {
+  ws.on('close', () => remove())
+
+  const remove = () => {
     if (cmdr) {
       console.log(`disconnecting ${cmdr}`)
       beacon.remove(cmdr)
-      broadcast({ type: 'beacon_remove', msg: cmdr })
+      broadcast({type: 'beacon_remove', msg: cmdr})
     }
-  })
+  }
 
   // Send to all clients except this one
   const broadcast = (data: DataMessage) => wss.clients.forEach(cl => {
